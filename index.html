@@ -3,142 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>최적화된 CUT 수량 계산기 (DP)</title>
+    <title>코일 절단 최적화 계산기 (최종 수정)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
             max-width: 800px;
-            margin: auto;
-            background: white;
+            margin: 0 auto;
             padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        h1 {
-            color: #333;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
         }
         input[type="number"] {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
+            box-sizing: border-box;
         }
         button {
+            padding: 10px 20px;
             background-color: #4CAF50;
             color: white;
-            padding: 10px 15px;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
         }
         button:hover {
             background-color: #45a049;
         }
-        #result {
-            margin-top: 20px;
-            background-color: #e7f3fe;
-            border: 1px solid #c3e6cb;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        #workSizes {
-            margin-bottom: 10px;
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>계산을해볼까?</h1>
-        <div>
-            <label for="coilWidth">코일폭:</label>
-            <input type="number" id="coilWidth" placeholder="코일폭 입력">
-        </div>
-        <div>
-            <label for="coilWeight">코일중량:</label>
-            <input type="number" id="coilWeight" placeholder="코일중량 입력">
-        </div>
-        <div id="workSizes">
-            <label>작업규격:</label>
-            <input type="number" placeholder="작업규격 입력">
-        </div>
-        <button onclick="addWorkSize()">작업규격 추가</button>
-        <button onclick="calculateOptimizedCuts()">계산하기</button>
-        <div id="result"></div>
+    <h1>코일 절단 최적화 계산기</h1>
+    <div>
+        <label for="coilWidth">코일 폭 (A):</label>
+        <input type="number" id="coilWidth" required>
+        <label for="coilWeight">코일 중량 (B):</label>
+        <input type="number" id="coilWeight" required>
     </div>
+    <table id="inputTable">
+        <tr>
+            <th>작업 규격</th>
+            <th>CUT 수량</th>
+            <th>작업치수</th>
+            <th>작업중량</th>
+        </tr>
+    </table>
+    <button onclick="addRow()">행 추가</button>
+    <button onclick="calculate()">계산</button>
+    <div id="result"></div>
 
     <script>
-        function addWorkSize() {
-            const workSizes = document.getElementById('workSizes');
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.placeholder = '작업규격 입력';
-            workSizes.appendChild(input);
+        let rowCount = 0;
+
+        function addRow() {
+            const table = document.getElementById('inputTable');
+            const row = table.insertRow(-1);
+            const cell1 = row.insertCell(0);
+            const cell2 = row.insertCell(1);
+            const cell3 = row.insertCell(2);
+            const cell4 = row.insertCell(3);
+
+            cell1.innerHTML = `<input type="number" id="spec${rowCount}">`;
+            cell2.innerHTML = `<input type="number" id="cut${rowCount}" value="0" min="0">`;
+            cell3.id = `workSize${rowCount}`;
+            cell4.id = `workWeight${rowCount}`;
+
+            rowCount++;
         }
 
-        function optimizeCuts(coilWidth, coilWeight, workSizes) {
-            const target = coilWidth * coilWeight;
-            const n = workSizes.length;
-            const dp = new Array(target + 1).fill(Infinity);
-            const choice = new Array(target + 1).fill(null);
+        function calculate() {
+            const coilWidth = parseFloat(document.getElementById('coilWidth').value);
+            const coilWeight = parseFloat(document.getElementById('coilWeight').value);
+            const specs = [];
 
-            dp[0] = 0;
-
-            for (let i = 0; i < n; i++) {
-                for (let j = workSizes[i]; j <= target; j++) {
-                    if (dp[j - workSizes[i]] + 1 < dp[j]) {
-                        dp[j] = dp[j - workSizes[i]] + 1;
-                        choice[j] = i;
-                    }
+            for (let i = 0; i < rowCount; i++) {
+                const spec = parseFloat(document.getElementById(`spec${i}`).value);
+                if (!isNaN(spec) && spec > 0) {
+                    specs.push(spec);
                 }
             }
 
-            let bestTotal = 0;
-            for (let i = target; i >= 0; i--) {
-                if (dp[i] !== Infinity) {
-                    bestTotal = i;
-                    break;
-                }
+            const result = optimizeCutting(coilWidth, coilWeight, specs);
+
+            let totalWorkSize = 0;
+            let totalWorkWeight = 0;
+
+            for (let i = 0; i < specs.length; i++) {
+                const workSize = specs[i] * result.cuts[i];
+                const workWeight = (workSize * coilWeight) / coilWidth;
+                totalWorkSize += workSize;
+                totalWorkWeight += workWeight;
+
+                document.getElementById(`cut${i}`).value = result.cuts[i];
+                document.getElementById(`workSize${i}`).textContent = workSize;
+                document.getElementById(`workWeight${i}`).textContent = workWeight.toFixed(2);
             }
 
+            const loss = Math.max(0, coilWeight - totalWorkWeight);
+            const lossPercentage = ((loss / coilWeight) * 100).toFixed(2);
+
+            document.getElementById('result').innerHTML = `
+                <h2>결과</h2>
+                <p>총 작업치수: ${totalWorkSize}</p>
+                <p>총 작업중량: ${totalWorkWeight.toFixed(2)}</p>
+                <p>LOSS: ${loss.toFixed(2)} (${lossPercentage}%)</p>
+            `;
+        }
+
+        function optimizeCutting(coilWidth, coilWeight, specs) {
+            const n = specs.length;
             const cuts = new Array(n).fill(0);
-            let current = bestTotal;
-            while (current > 0) {
-                const selectedSize = choice[current];
-                cuts[selectedSize]++;
-                current -= workSizes[selectedSize];
+
+            let remainingWeight = coilWeight;
+
+            // 탐욕 알고리즘으로 작업 규격에 맞춰 최적 컷 수 계산
+            for (let i = 0; i < n; i++) {
+                let specWeight = (specs[i] * coilWeight) / coilWidth;
+
+                while (remainingWeight >= specWeight) {
+                    cuts[i]++;
+                    remainingWeight -= specWeight;
+                }
             }
 
-            return [cuts, target - bestTotal];
+            return { cuts: cuts };
         }
 
-        function calculateOptimizedCuts() {
-            const coilWidth = parseInt(document.getElementById('coilWidth').value);
-            const coilWeight = parseInt(document.getElementById('coilWeight').value);
-            const workSizeInputs = document.querySelectorAll('#workSizes input');
-            const workSizes = Array.from(workSizeInputs).map(input => parseInt(input.value)).filter(size => !isNaN(size));
-
-            const [bestCuts, loss] = optimizeCuts(coilWidth, coilWeight, workSizes);
-
-            let resultHTML = `<h3>결과:</h3>`;
-            resultHTML += `<p>코일폭: ${coilWidth}</p>`;
-            resultHTML += `<p>코일중량: ${coilWeight}</p>`;
-            resultHTML += `<p>작업규격별 CUT 수량:</p>`;
-            let totalWeight = 0;
-            workSizes.forEach((size, index) => {
-                const cut = bestCuts[index];
-                totalWeight += size * cut;
-                resultHTML += `<p>${size}: ${cut}개</p>`;
-            });
-            resultHTML += `<p>총 작업중량: ${totalWeight}</p>`;
-            resultHTML += `<p>Loss: ${loss}</p>`;
-
-            document.getElementById('result').innerHTML = resultHTML;
-        }
+        // 초기 행 추가
+        addRow();
+        addRow();
+        addRow();
+        addRow();
     </script>
 </body>
 </html>
