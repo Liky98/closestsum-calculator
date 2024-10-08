@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>최근접 합 계산기</title>
+    <title>최적화된 CUT 수량 계산기</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,7 +13,7 @@
             background-color: #f4f4f4;
         }
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: auto;
             background: white;
             padding: 20px;
@@ -46,71 +46,90 @@
             padding: 10px;
             border-radius: 4px;
         }
+        #workSizes {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>최근접 합 계산기</h1>
+        <h1>최적화된 CUT 수량 계산기</h1>
         <div>
-            <label for="targetX">목표값 X:</label>
-            <input type="number" id="targetX" placeholder="목표값 X 입력">
+            <label for="coilWidth">코일폭:</label>
+            <input type="number" id="coilWidth" placeholder="코일폭 입력">
         </div>
         <div>
-            <label for="lengthA">길이 a:</label>
-            <input type="number" id="lengthA" placeholder="길이 a 입력">
+            <label for="coilWeight">코일중량:</label>
+            <input type="number" id="coilWeight" placeholder="코일중량 입력">
         </div>
-        <div>
-            <label for="lengthB">길이 b:</label>
-            <input type="number" id="lengthB" placeholder="길이 b 입력">
+        <div id="workSizes">
+            <label>작업규격:</label>
+            <input type="number" placeholder="작업규격 입력">
         </div>
-        <div>
-            <label for="lengthC">길이 c:</label>
-            <input type="number" id="lengthC" placeholder="길이 c 입력">
-        </div>
-        <div>
-            <label for="lengthD">길이 d:</label>
-            <input type="number" id="lengthD" placeholder="길이 d 입력">
-        </div>
-        <button onclick="calculateClosestSum()">계산하기</button>
+        <button onclick="addWorkSize()">작업규격 추가</button>
+        <button onclick="calculateOptimizedCuts()">계산하기</button>
         <div id="result"></div>
     </div>
 
     <script>
-        function findClosestSum(X, lengths) {
-            lengths.sort((a, b) => b - a);
-            let result = new Array(lengths.length).fill(0);
-            let currentSum = 0;
+        function addWorkSize() {
+            const workSizes = document.getElementById('workSizes');
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.placeholder = '작업규격 입력';
+            workSizes.appendChild(input);
+        }
 
-            for (let i = 0; i < lengths.length; i++) {
-                while (currentSum + lengths[i] <= X) {
-                    currentSum += lengths[i];
-                    result[i]++;
+        function optimizeCuts(coilWidth, coilWeight, workSizes) {
+            const target = coilWidth * coilWeight;
+            let bestSolution = null;
+            let minLoss = Infinity;
+
+            function backtrack(index, currentWeight, cuts) {
+                if (index === workSizes.length) {
+                    const loss = Math.abs(target - currentWeight);
+                    if (loss < minLoss) {
+                        minLoss = loss;
+                        bestSolution = [...cuts];
+                    }
+                    return;
+                }
+
+                const maxCuts = Math.floor((target - currentWeight) / workSizes[index]);
+                for (let i = 0; i <= maxCuts; i++) {
+                    cuts[index] = i;
+                    const newWeight = currentWeight + workSizes[index] * i;
+                    if (newWeight <= target) {
+                        backtrack(index + 1, newWeight, cuts);
+                    }
+                    cuts[index] = 0;
                 }
             }
 
-            return [result, currentSum];
+            backtrack(0, 0, new Array(workSizes.length).fill(0));
+            return [bestSolution, minLoss];
         }
 
-        function calculateClosestSum() {
-            const X = parseInt(document.getElementById('targetX').value);
-            const lengths = [
-                parseInt(document.getElementById('lengthA').value),
-                parseInt(document.getElementById('lengthB').value),
-                parseInt(document.getElementById('lengthC').value),
-                parseInt(document.getElementById('lengthD').value)
-            ].filter(length => !isNaN(length));
+        function calculateOptimizedCuts() {
+            const coilWidth = parseInt(document.getElementById('coilWidth').value);
+            const coilWeight = parseInt(document.getElementById('coilWeight').value);
+            const workSizeInputs = document.querySelectorAll('#workSizes input');
+            const workSizes = Array.from(workSizeInputs).map(input => parseInt(input.value)).filter(size => !isNaN(size));
 
-            const [counts, total] = findClosestSum(X, lengths);
+            const [bestCuts, loss] = optimizeCuts(coilWidth, coilWeight, workSizes);
 
             let resultHTML = `<h3>결과:</h3>`;
-            resultHTML += `<p>목표값 X: ${X}</p>`;
-            resultHTML += `<p>사용 가능한 길이들: ${lengths.join(', ')}</p>`;
-            resultHTML += `<p>각 길이별 사용 횟수:</p>`;
-            lengths.forEach((length, index) => {
-                resultHTML += `<p>${length}: ${counts[index]}개</p>`;
+            resultHTML += `<p>코일폭: ${coilWidth}</p>`;
+            resultHTML += `<p>코일중량: ${coilWeight}</p>`;
+            resultHTML += `<p>작업규격별 CUT 수량:</p>`;
+            let totalWeight = 0;
+            workSizes.forEach((size, index) => {
+                const cut = bestCuts[index];
+                totalWeight += size * cut;
+                resultHTML += `<p>${size}: ${cut}개</p>`;
             });
-            resultHTML += `<p>총합: ${total}</p>`;
-            resultHTML += `<p>차이: ${X - total}</p>`;
+            resultHTML += `<p>총 작업중량: ${totalWeight}</p>`;
+            resultHTML += `<p>Loss: ${loss}</p>`;
 
             document.getElementById('result').innerHTML = resultHTML;
         }
