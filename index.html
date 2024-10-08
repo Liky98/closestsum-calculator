@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>최적화된 CUT 수량 계산기</title>
+    <title>최적화된 CUT 수량 계산기 (DP)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -53,7 +53,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>최적화된 CUT 수량 계산기</h1>
+        <h1>계산을해볼까?</h1>
         <div>
             <label for="coilWidth">코일폭:</label>
             <input type="number" id="coilWidth" placeholder="코일폭 입력">
@@ -82,32 +82,38 @@
 
         function optimizeCuts(coilWidth, coilWeight, workSizes) {
             const target = coilWidth * coilWeight;
-            let bestSolution = null;
-            let minLoss = Infinity;
+            const n = workSizes.length;
+            const dp = new Array(target + 1).fill(Infinity);
+            const choice = new Array(target + 1).fill(null);
 
-            function backtrack(index, currentWeight, cuts) {
-                if (index === workSizes.length) {
-                    const loss = Math.abs(target - currentWeight);
-                    if (loss < minLoss) {
-                        minLoss = loss;
-                        bestSolution = [...cuts];
-                    }
-                    return;
-                }
+            dp[0] = 0;
 
-                const maxCuts = Math.floor((target - currentWeight) / workSizes[index]);
-                for (let i = 0; i <= maxCuts; i++) {
-                    cuts[index] = i;
-                    const newWeight = currentWeight + workSizes[index] * i;
-                    if (newWeight <= target) {
-                        backtrack(index + 1, newWeight, cuts);
+            for (let i = 0; i < n; i++) {
+                for (let j = workSizes[i]; j <= target; j++) {
+                    if (dp[j - workSizes[i]] + 1 < dp[j]) {
+                        dp[j] = dp[j - workSizes[i]] + 1;
+                        choice[j] = i;
                     }
-                    cuts[index] = 0;
                 }
             }
 
-            backtrack(0, 0, new Array(workSizes.length).fill(0));
-            return [bestSolution, minLoss];
+            let bestTotal = 0;
+            for (let i = target; i >= 0; i--) {
+                if (dp[i] !== Infinity) {
+                    bestTotal = i;
+                    break;
+                }
+            }
+
+            const cuts = new Array(n).fill(0);
+            let current = bestTotal;
+            while (current > 0) {
+                const selectedSize = choice[current];
+                cuts[selectedSize]++;
+                current -= workSizes[selectedSize];
+            }
+
+            return [cuts, target - bestTotal];
         }
 
         function calculateOptimizedCuts() {
