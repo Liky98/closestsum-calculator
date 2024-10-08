@@ -111,15 +111,15 @@
             document.getElementById('result').innerHTML = `
                 <h2>결과</h2>
                 <p>총 작업치수: ${totalWorkSize}</p>
-                <p>총 작업중량: ${totalWorkWeight}</p>
+                <p>총 작업중���: ${totalWorkWeight}</p>
                 <p>LOSS: ${loss} (${lossPercentage}%)</p>
             `;
         }
 
         function optimizeCutting(coilWidth, coilWeight, specs) {
             const n = specs.length;
-            const dp = new Array(coilWidth + 1).fill(0);
-            const prevCut = new Array(coilWidth + 1).fill(null);
+            const dp = new Array(coilWeight + 1).fill(0);
+            const prevCut = new Array(coilWeight + 1).fill(null);
 
             for (let w = 1; w <= coilWeight; w++) {
                 for (let i = 0; i < n; i++) {
