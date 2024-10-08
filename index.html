@@ -91,64 +91,65 @@
                 }
             }
 
-            const { cuts, totalWorkWeight, loss } = optimizeCutting(coilWidth, coilWeight, specs);
+            const { cuts, totalWorkSize, sizeLoss } = optimizeCutting(coilWidth, coilWeight, specs);
 
-            let totalWorkSize = 0;
+            let totalWorkWeight = 0;
             for (let i = 0; i < specs.length; i++) {
                 const spec = specs[i];
                 const cut = cuts[i];
                 document.getElementById(`cut${i}`).value = cut;
                 const workSize = spec * cut;
-                const workWeight = Math.floor((coilWeight * workSize) / coilWidth);
-                totalWorkSize += workSize;
+                const workWeight = Math.ceil((coilWeight / coilWidth) * workSize);
+                totalWorkWeight += workWeight;
 
                 document.getElementById(`workSize${i}`).textContent = workSize;
                 document.getElementById(`workWeight${i}`).textContent = workWeight;
             }
 
-            const lossPercentage = ((loss / coilWeight) * 100).toFixed(2);
+            const weightLoss = coilWeight - totalWorkWeight;
+            const sizeLossPercentage = ((sizeLoss / coilWidth) * 100).toFixed(2);
+            const weightLossPercentage = ((weightLoss / coilWeight) * 100).toFixed(2);
 
             document.getElementById('result').innerHTML = `
                 <h2>결과</h2>
                 <p>총 작업치수: ${totalWorkSize}</p>
                 <p>총 작업중량: ${totalWorkWeight}</p>
-                <p>LOSS: ${loss} (${lossPercentage}%)</p>
+                <p>작업치수 LOSS: ${sizeLoss} (${sizeLossPercentage}%)</p>
+                <p>작업중량 LOSS: ${weightLoss} (${weightLossPercentage}%)</p>
             `;
         }
 
         function optimizeCutting(coilWidth, coilWeight, specs) {
             const n = specs.length;
-            const dp = new Array(coilWeight + 1).fill(0);
-            const prevCut = new Array(coilWeight + 1).fill(null);
+            const dp = new Array(coilWidth + 1).fill(0);
+            const prevCut = new Array(coilWidth + 1).fill(null);
 
-            for (let w = 1; w <= coilWeight; w++) {
+            for (let w = 1; w <= coilWidth; w++) {
                 for (let i = 0; i < n; i++) {
-                    const specWeight = Math.ceil((coilWeight * specs[i]) / coilWidth);
-                    if (specWeight <= w) {
-                        const newValue = dp[w - specWeight] + specs[i];
+                    if (specs[i] <= w) {
+                        const newValue = dp[w - specs[i]] + specs[i];
                         if (newValue > dp[w]) {
                             dp[w] = newValue;
-                            prevCut[w] = { index: i, weight: specWeight };
+                            prevCut[w] = { index: i, size: specs[i] };
                         }
                     }
                 }
             }
 
-            let currentWeight = coilWeight;
+            let currentWidth = coilWidth;
             const cuts = new Array(n).fill(0);
             let totalWorkSize = 0;
 
-            while (currentWeight > 0 && prevCut[currentWeight]) {
-                const { index, weight } = prevCut[currentWeight];
+            while (currentWidth > 0 && prevCut[currentWidth]) {
+                const { index, size } = prevCut[currentWidth];
                 cuts[index]++;
-                totalWorkSize += specs[index];
-                currentWeight -= weight;
+                totalWorkSize += size;
+                currentWidth -= size;
             }
 
-            const totalWorkWeight = coilWeight - currentWeight;
-            const loss = currentWeight;
+            const sizeLoss = coilWidth - totalWorkSize;
 
-            return { cuts, totalWorkWeight, loss };
+            return { cuts, totalWorkSize, sizeLoss };
         }
 
         // 초기 행 추가
