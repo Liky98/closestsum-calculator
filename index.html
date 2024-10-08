@@ -38,6 +38,31 @@
         button:hover {
             background-color: #45a049;
         }
+        
+        .top-results {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .top-results h3 {
+            margin-top: 0;
+        }
+
+        .top-results table {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .top-results th, .top-results td {
+            padding: 5px;
+            text-align: center;
+        }
+
+        .top-results tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
     </style>
 </head>
 <body>
@@ -59,6 +84,7 @@
     <button onclick="addRow()">행 추가</button>
     <button onclick="calculate()">계산</button>
     <div id="result"></div>
+    <div id="topResults" class="top-results"></div>
 
     <script>
         let rowCount = 0;
@@ -91,30 +117,9 @@
                 }
             }
 
-            const { cuts, totalWorkSize, totalWorkWeight, sizeLoss } = optimizeCutting(coilWidth, coilWeight, specs);
+            const topResults = findTopResults(coilWidth, coilWeight, specs, 10);
 
-            for (let i = 0; i < specs.length; i++) {
-                const spec = specs[i];
-                const cut = cuts[i];
-                document.getElementById(`cut${i}`).value = cut;
-                const workSize = spec * cut;
-                const workWeight = Math.ceil((coilWeight / coilWidth) * workSize);
-
-                document.getElementById(`workSize${i}`).textContent = workSize;
-                document.getElementById(`workWeight${i}`).textContent = workWeight;
-            }
-
-            const weightLoss = coilWeight - totalWorkWeight;
-            const sizeLossPercentage = ((sizeLoss / coilWidth) * 100).toFixed(2);
-            const weightLossPercentage = ((weightLoss / coilWeight) * 100).toFixed(2);
-
-            document.getElementById('result').innerHTML = `
-                <h2>결과</h2>
-                <p>총 작업치수: ${totalWorkSize}</p>
-                <p>총 작업중량: ${totalWorkWeight}</p>
-                <p>작업치수 LOSS: ${sizeLoss} (${sizeLossPercentage}%)</p>
-                <p>작업중량 LOSS: ${weightLoss} (${weightLossPercentage}%)</p>
-            `;
+            displayTopResults(topResults, specs);
         }
 
         function optimizeCutting(coilWidth, coilWeight, specs) {
@@ -171,7 +176,50 @@
                 }
             }
 
-            return bestResult || { cuts: new Array(n).fill(0), totalWorkSize: 0, totalWorkWeight: 0, sizeLoss: coilWidth };
+            return {
+                cuts: bestResult.cuts,
+                totalWorkSize: bestResult.totalWorkSize,
+                totalWorkWeight: bestResult.totalWorkWeight,
+                sizeLoss: bestResult.sizeLoss,
+                allResults: dp.map((size, width) => ({ size, width })).filter(r => r.size > 0)
+            };
+        }
+
+        function findTopResults(coilWidth, coilWeight, specs, topCount) {
+            const { allResults } = optimizeCutting(coilWidth, coilWeight, specs);
+            
+            return allResults
+                .map(result => {
+                    const backtrackResult = backtrack(result.width);
+                    return {
+                        cuts: backtrackResult.cuts,
+                        totalWorkSize: backtrackResult.totalWorkSize,
+                        totalWorkWeight: backtrackResult.totalWorkWeight,
+                        sizeLoss: coilWidth - backtrackResult.totalWorkSize
+                    };
+                })
+                .filter(result => result.totalWorkWeight <= coilWeight)
+                .sort((a, b) => a.sizeLoss - b.sizeLoss)
+                .slice(0, topCount);
+        }
+
+        function displayTopResults(topResults, specs) {
+            const topResultsDiv = document.getElementById('topResults');
+            let html = '<h3>상위 10개 조합 결과</h3>';
+            html += '<table><tr><th>순위</th><th>CUT 수량</th><th>총 작업치수</th><th>총 작업중량</th><th>작업치수 LOSS</th></tr>';
+
+            topResults.forEach((result, index) => {
+                html += `<tr>
+                    <td>${index + 1}</td>
+                    <td>${result.cuts.map((cut, i) => `${specs[i]}: ${cut}`).join(', ')}</td>
+                    <td>${result.totalWorkSize}</td>
+                    <td>${result.totalWorkWeight}</td>
+                    <td>${result.sizeLoss}</td>
+                </tr>`;
+            });
+
+            html += '</table>';
+            topResultsDiv.innerHTML = html;
         }
 
         // 초기 행 추가
