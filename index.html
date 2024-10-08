@@ -88,16 +88,24 @@
         
             for (let i = 0; i < rowCount; i++) {
                 const spec = parseInt(document.getElementById(`spec${i}`).value);
-                const cuts = parseInt(document.getElementById(`cut${i}`).value);
-                if (!isNaN(spec) && cuts > 0) {
-                    const workSize = spec * cuts;
-                    const workWeight = (workSize / coilWidth) * coilWeight;
-                    totalWorkSize += workSize;
-                    totalWorkWeight += workWeight;
-        
-                    document.getElementById(`workSize${i}`).textContent = workSize;
-                    document.getElementById(`workWeight${i}`).textContent = workWeight.toFixed(2);
+                if (!isNaN(spec)) {
+                    specs.push(spec);
                 }
+            }
+        
+            const { cuts } = optimizeCutting(coilWidth, coilWeight, specs);
+        
+            for (let i = 0; i < specs.length; i++) {
+                const spec = specs[i];
+                const cut = cuts[i];
+                document.getElementById(`cut${i}`).value = cut;
+                const workSize = spec * cut;
+                const workWeight = (workSize / coilWidth) * coilWeight;
+                totalWorkSize += workSize;
+                totalWorkWeight += workWeight;
+        
+                document.getElementById(`workSize${i}`).textContent = workSize;
+                document.getElementById(`workWeight${i}`).textContent = workWeight.toFixed(2);
             }
         
             const loss = Math.max(0, coilWeight - totalWorkWeight);
@@ -115,15 +123,13 @@
             const n = specs.length;
             const cuts = new Array(n).fill(0);
 
-            let remainingWeight = coilWeight;
+            let remainingWidth = coilWidth;
 
             // 탐욕 알고리즘으로 작업 규격에 맞춰 최적 컷 수 계산
             for (let i = 0; i < n; i++) {
-                let specWeight = (specs[i] * coilWeight) / coilWidth;
-
-                while (remainingWeight >= specWeight) {
+                while (remainingWidth >= specs[i]) {
                     cuts[i]++;
-                    remainingWeight -= specWeight;
+                    remainingWidth -= specs[i];
                 }
             }
 
