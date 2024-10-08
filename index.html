@@ -181,7 +181,7 @@
                                 prevCut[w] = { index: i, size: specs[i] };
                                 
                                 const result = backtrack(w);
-                                if (result.sizeLoss <= 30) {  // Loss가 30 이하인 경우만 고려
+                                if (result.sizeLoss <= 50) {  // Loss가 50 이하인 경우만 고려
                                     const resultKey = result.cuts.join(',') + '|' + result.sizeLoss;
                                     if (!seenResults.has(resultKey)) {
                                         seenResults.add(resultKey);
