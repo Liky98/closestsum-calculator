@@ -91,10 +91,10 @@
                 }
             }
 
-            const topResults = optimizeCutting(coilWidth, coilWeight, specs);
+            const uniqueResults = optimizeCutting(coilWidth, coilWeight, specs);
 
             // 최적의 결과 표시 (첫 번째 결과)
-            const bestResult = topResults[0];
+            const bestResult = uniqueResults[0];
             for (let i = 0; i < specs.length; i++) {
                 const spec = specs[i];
                 const cut = bestResult.cuts[i];
@@ -116,7 +116,7 @@
                 <p>총 작업중량: ${bestResult.totalWorkWeight}</p>
                 <p>작업치수 LOSS: ${bestResult.sizeLoss} (${sizeLossPercentage}%)</p>
                 <p>작업중량 LOSS: ${weightLoss} (${weightLossPercentage}%)</p>
-                <h3>상위 10개 조합:</h3>
+                <h3>Loss 30 이하의 고유한 조합:</h3>
                 <table>
                     <tr>
                         <th>순위</th>
@@ -125,7 +125,7 @@
                     </tr>
             `;
 
-            topResults.forEach((result, index) => {
+            uniqueResults.forEach((result, index) => {
                 resultHTML += `
                     <tr>
                         <td>${index + 1}</td>
@@ -144,7 +144,8 @@
             const n = specs.length;
             const dp = new Array(coilWidth + 1).fill(0);
             const prevCut = new Array(coilWidth + 1).fill(null);
-            const topResults = [];
+            const uniqueResults = [];
+            const seenResults = new Set();
 
             function calculateWeight(size) {
                 return Math.ceil((coilWeight / coilWidth) * size);
@@ -180,11 +181,11 @@
                                 prevCut[w] = { index: i, size: specs[i] };
                                 
                                 const result = backtrack(w);
-                                if (topResults.length < 10 || result.sizeLoss < topResults[topResults.length - 1].sizeLoss) {
-                                    topResults.push(result);
-                                    topResults.sort((a, b) => a.sizeLoss - b.sizeLoss);
-                                    if (topResults.length > 10) {
-                                        topResults.pop();
+                                if (result.sizeLoss <= 30) {  // Loss가 30 이하인 경우만 고려
+                                    const resultKey = result.cuts.join(',') + '|' + result.sizeLoss;
+                                    if (!seenResults.has(resultKey)) {
+                                        seenResults.add(resultKey);
+                                        uniqueResults.push(result);
                                     }
                                 }
                             }
@@ -193,7 +194,10 @@
                 }
             }
 
-            return topResults.length > 0 ? topResults : [{ cuts: new Array(n).fill(0), totalWorkSize: 0, totalWorkWeight: 0, sizeLoss: coilWidth }];
+            // Loss 기준으로 정렬
+            uniqueResults.sort((a, b) => a.sizeLoss - b.sizeLoss);
+
+            return uniqueResults.length > 0 ? uniqueResults : [{ cuts: new Array(n).fill(0), totalWorkSize: 0, totalWorkWeight: 0, sizeLoss: coilWidth }];
         }
 
         // 초기 행 추가
