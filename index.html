@@ -83,57 +83,72 @@
             const coilWidth = parseInt(document.getElementById('coilWidth').value);
             const coilWeight = parseInt(document.getElementById('coilWeight').value);
             const specs = [];
-            let totalWorkSize = 0;
-            let totalWorkWeight = 0;
-        
+            
             for (let i = 0; i < rowCount; i++) {
                 const spec = parseInt(document.getElementById(`spec${i}`).value);
                 if (!isNaN(spec)) {
                     specs.push(spec);
                 }
             }
-        
-            const { cuts } = optimizeCutting(coilWidth, coilWeight, specs);
-        
+
+            const { cuts, totalWorkWeight, loss } = optimizeCutting(coilWidth, coilWeight, specs);
+
+            let totalWorkSize = 0;
             for (let i = 0; i < specs.length; i++) {
                 const spec = specs[i];
                 const cut = cuts[i];
                 document.getElementById(`cut${i}`).value = cut;
                 const workSize = spec * cut;
-                const workWeight = (workSize / coilWidth) * coilWeight;
+                const workWeight = Math.floor((coilWeight * workSize) / coilWidth);
                 totalWorkSize += workSize;
-                totalWorkWeight += workWeight;
-        
+
                 document.getElementById(`workSize${i}`).textContent = workSize;
-                document.getElementById(`workWeight${i}`).textContent = workWeight.toFixed(2);
+                document.getElementById(`workWeight${i}`).textContent = workWeight;
             }
-        
-            const loss = Math.max(0, coilWeight - totalWorkWeight);
+
             const lossPercentage = ((loss / coilWeight) * 100).toFixed(2);
-        
+
             document.getElementById('result').innerHTML = `
                 <h2>결과</h2>
                 <p>총 작업치수: ${totalWorkSize}</p>
-                <p>총 작업중량: ${totalWorkWeight.toFixed(2)}</p>
-                <p>LOSS: ${loss.toFixed(2)} (${lossPercentage}%)</p>
+                <p>총 작업중량: ${totalWorkWeight}</p>
+                <p>LOSS: ${loss} (${lossPercentage}%)</p>
             `;
         }
 
         function optimizeCutting(coilWidth, coilWeight, specs) {
             const n = specs.length;
-            const cuts = new Array(n).fill(0);
+            const dp = new Array(coilWidth + 1).fill(0);
+            const prevCut = new Array(coilWidth + 1).fill(null);
 
-            let remainingWidth = coilWidth;
-
-            // 탐욕 알고리즘으로 작업 규격에 맞춰 최적 컷 수 계산
-            for (let i = 0; i < n; i++) {
-                while (remainingWidth >= specs[i]) {
-                    cuts[i]++;
-                    remainingWidth -= specs[i];
+            for (let w = 1; w <= coilWeight; w++) {
+                for (let i = 0; i < n; i++) {
+                    const specWeight = Math.floor((coilWeight * specs[i]) / coilWidth);
+                    if (specWeight <= w) {
+                        const newValue = dp[w - specWeight] + specs[i];
+                        if (newValue > dp[w]) {
+                            dp[w] = newValue;
+                            prevCut[w] = { index: i, weight: specWeight };
+                        }
+                    }
                 }
             }
 
-            return { cuts: cuts };
+            let currentWeight = coilWeight;
+            const cuts = new Array(n).fill(0);
+            let totalWorkSize = 0;
+
+            while (currentWeight > 0 && prevCut[currentWeight]) {
+                const { index, weight } = prevCut[currentWeight];
+                cuts[index]++;
+                totalWorkSize += specs[index];
+                currentWeight -= weight;
+            }
+
+            const totalWorkWeight = coilWeight - currentWeight;
+            const loss = currentWeight;
+
+            return { cuts, totalWorkWeight, loss };
         }
 
         // 초기 행 추가
