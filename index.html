@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>최근접 합 계산기</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            background-color: #e7f3fe;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>최근접 합 계산기</h1>
+        <div>
+            <label for="targetX">목표값 X:</label>
+            <input type="number" id="targetX" placeholder="목표값 X 입력">
+        </div>
+        <div>
+            <label for="lengthA">길이 a:</label>
+            <input type="number" id="lengthA" placeholder="길이 a 입력">
+        </div>
+        <div>
+            <label for="lengthB">길이 b:</label>
+            <input type="number" id="lengthB" placeholder="길이 b 입력">
+        </div>
+        <div>
+            <label for="lengthC">길이 c:</label>
+            <input type="number" id="lengthC" placeholder="길이 c 입력">
+        </div>
+        <div>
+            <label for="lengthD">길이 d:</label>
+            <input type="number" id="lengthD" placeholder="길이 d 입력">
+        </div>
+        <button onclick="calculateClosestSum()">계산하기</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function findClosestSum(X, lengths) {
+            lengths.sort((a, b) => b - a);
+            let result = new Array(lengths.length).fill(0);
+            let currentSum = 0;
+
+            for (let i = 0; i < lengths.length; i++) {
+                while (currentSum + lengths[i] <= X) {
+                    currentSum += lengths[i];
+                    result[i]++;
+                }
+            }
+
+            return [result, currentSum];
+        }
+
+        function calculateClosestSum() {
+            const X = parseInt(document.getElementById('targetX').value);
+            const lengths = [
+                parseInt(document.getElementById('lengthA').value),
+                parseInt(document.getElementById('lengthB').value),
+                parseInt(document.getElementById('lengthC').value),
+                parseInt(document.getElementById('lengthD').value)
+            ].filter(length => !isNaN(length));
+
+            const [counts, total] = findClosestSum(X, lengths);
+
+            let resultHTML = `<h3>결과:</h3>`;
+            resultHTML += `<p>목표값 X: ${X}</p>`;
+            resultHTML += `<p>사용 가능한 길이들: ${lengths.join(', ')}</p>`;
+            resultHTML += `<p>각 길이별 사용 횟수:</p>`;
+            lengths.forEach((length, index) => {
+                resultHTML += `<p>${length}: ${counts[index]}개</p>`;
+            });
+            resultHTML += `<p>총합: ${total}</p>`;
+            resultHTML += `<p>차이: ${X - total}</p>`;
+
+            document.getElementById('result').innerHTML = resultHTML;
+        }
+    </script>
+</body>
+</html>
