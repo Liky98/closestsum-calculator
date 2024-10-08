@@ -111,7 +111,7 @@
             document.getElementById('result').innerHTML = `
                 <h2>결과</h2>
                 <p>총 작업치수: ${totalWorkSize}</p>
-                <p>총 작업중���: ${totalWorkWeight}</p>
+                <p>총 작업중량: ${totalWorkWeight}</p>
                 <p>LOSS: ${loss} (${lossPercentage}%)</p>
             `;
         }
@@ -123,7 +123,7 @@
 
             for (let w = 1; w <= coilWeight; w++) {
                 for (let i = 0; i < n; i++) {
-                    const specWeight = Math.floor((coilWeight * specs[i]) / coilWidth);
+                    const specWeight = Math.ceil((coilWeight * specs[i]) / coilWidth);
                     if (specWeight <= w) {
                         const newValue = dp[w - specWeight] + specs[i];
                         if (newValue > dp[w]) {
