@@ -91,16 +91,14 @@
                 }
             }
 
-            const { cuts, totalWorkSize, sizeLoss } = optimizeCutting(coilWidth, coilWeight, specs);
+            const { cuts, totalWorkSize, totalWorkWeight, sizeLoss } = optimizeCutting(coilWidth, coilWeight, specs);
 
-            let totalWorkWeight = 0;
             for (let i = 0; i < specs.length; i++) {
                 const spec = specs[i];
                 const cut = cuts[i];
                 document.getElementById(`cut${i}`).value = cut;
                 const workSize = spec * cut;
                 const workWeight = Math.ceil((coilWeight / coilWidth) * workSize);
-                totalWorkWeight += workWeight;
 
                 document.getElementById(`workSize${i}`).textContent = workSize;
                 document.getElementById(`workWeight${i}`).textContent = workWeight;
@@ -124,32 +122,56 @@
             const dp = new Array(coilWidth + 1).fill(0);
             const prevCut = new Array(coilWidth + 1).fill(null);
 
+            function calculateWeight(size) {
+                return Math.ceil((coilWeight / coilWidth) * size);
+            }
+
+            function backtrack(width) {
+                const cuts = new Array(n).fill(0);
+                let totalWorkSize = 0;
+                let totalWorkWeight = 0;
+                let currentWidth = width;
+
+                while (currentWidth > 0 && prevCut[currentWidth]) {
+                    const { index, size } = prevCut[currentWidth];
+                    cuts[index]++;
+                    totalWorkSize += size;
+                    totalWorkWeight += calculateWeight(size);
+                    currentWidth -= size;
+                }
+
+                return { cuts, totalWorkSize, totalWorkWeight, sizeLoss: coilWidth - totalWorkSize };
+            }
+
             for (let w = 1; w <= coilWidth; w++) {
                 for (let i = 0; i < n; i++) {
                     if (specs[i] <= w) {
-                        const newValue = dp[w - specs[i]] + specs[i];
-                        if (newValue > dp[w]) {
-                            dp[w] = newValue;
-                            prevCut[w] = { index: i, size: specs[i] };
+                        const newSize = dp[w - specs[i]] + specs[i];
+                        if (newSize > dp[w]) {
+                            const potentialResult = backtrack(w - specs[i]);
+                            const newWeight = potentialResult.totalWorkWeight + calculateWeight(specs[i]);
+                            if (newWeight <= coilWeight) {
+                                dp[w] = newSize;
+                                prevCut[w] = { index: i, size: specs[i] };
+                            }
                         }
                     }
                 }
             }
 
-            let currentWidth = coilWidth;
-            const cuts = new Array(n).fill(0);
-            let totalWorkSize = 0;
-
-            while (currentWidth > 0 && prevCut[currentWidth]) {
-                const { index, size } = prevCut[currentWidth];
-                cuts[index]++;
-                totalWorkSize += size;
-                currentWidth -= size;
+            // 최적의 결과 찾기
+            let bestResult = null;
+            for (let w = coilWidth; w > 0; w--) {
+                if (dp[w] > 0) {
+                    const result = backtrack(w);
+                    if (result.totalWorkWeight <= coilWeight) {
+                        bestResult = result;
+                        break;
+                    }
+                }
             }
 
-            const sizeLoss = coilWidth - totalWorkSize;
-
-            return { cuts, totalWorkSize, sizeLoss };
+            return bestResult || { cuts: new Array(n).fill(0), totalWorkSize: 0, totalWorkWeight: 0, sizeLoss: coilWidth };
         }
 
         // 초기 행 추가
