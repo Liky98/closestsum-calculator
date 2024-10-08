@@ -80,36 +80,29 @@
         }
 
         function calculate() {
-            const coilWidth = parseFloat(document.getElementById('coilWidth').value);
-            const coilWeight = parseFloat(document.getElementById('coilWeight').value);
+            const coilWidth = parseInt(document.getElementById('coilWidth').value);
+            const coilWeight = parseInt(document.getElementById('coilWeight').value);
             const specs = [];
-
-            for (let i = 0; i < rowCount; i++) {
-                const spec = parseFloat(document.getElementById(`spec${i}`).value);
-                if (!isNaN(spec) && spec > 0) {
-                    specs.push(spec);
-                }
-            }
-
-            const result = optimizeCutting(coilWidth, coilWeight, specs);
-
             let totalWorkSize = 0;
             let totalWorkWeight = 0;
-
-            for (let i = 0; i < specs.length; i++) {
-                const workSize = specs[i] * result.cuts[i];
-                const workWeight = (workSize * coilWeight) / coilWidth;
-                totalWorkSize += workSize;
-                totalWorkWeight += workWeight;
-
-                document.getElementById(`cut${i}`).value = result.cuts[i];
-                document.getElementById(`workSize${i}`).textContent = workSize;
-                document.getElementById(`workWeight${i}`).textContent = workWeight.toFixed(2);
+        
+            for (let i = 0; i < rowCount; i++) {
+                const spec = parseInt(document.getElementById(`spec${i}`).value);
+                const cuts = parseInt(document.getElementById(`cut${i}`).value);
+                if (!isNaN(spec) && cuts > 0) {
+                    const workSize = spec * cuts;
+                    const workWeight = (workSize / coilWidth) * coilWeight;
+                    totalWorkSize += workSize;
+                    totalWorkWeight += workWeight;
+        
+                    document.getElementById(`workSize${i}`).textContent = workSize;
+                    document.getElementById(`workWeight${i}`).textContent = workWeight.toFixed(2);
+                }
             }
-
+        
             const loss = Math.max(0, coilWeight - totalWorkWeight);
             const lossPercentage = ((loss / coilWeight) * 100).toFixed(2);
-
+        
             document.getElementById('result').innerHTML = `
                 <h2>결과</h2>
                 <p>총 작업치수: ${totalWorkSize}</p>
