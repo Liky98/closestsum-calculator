@@ -190,7 +190,7 @@
             
             return allResults
                 .map(result => {
-                    const backtrackResult = backtrack(result.width);
+                    const backtrackResult = optimizeCutting(coilWidth, coilWeight, specs).backtrack(result.width);
                     return {
                         cuts: backtrackResult.cuts,
                         totalWorkSize: backtrackResult.totalWorkSize,
